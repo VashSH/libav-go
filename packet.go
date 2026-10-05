@@ -35,6 +35,7 @@ func NewRawPacket() (Packet, error) {
 	if av_pkt == nil {
 		return Packet{}, ErrOOM
 	}
+	trackPacketAlloc(id)
 	return Packet{av_pkt, nil, id}, nil
 }
 
@@ -45,6 +46,7 @@ func NewPacket(data []byte, pts uint64, is_key_frame bool) (Packet, error) {
 	if av_pkt == nil {
 		return Packet{}, ErrOOM
 	}
+	trackPacketAlloc(id)
 
 	av_pkt.data = (*C.uint8_t)(unsafe.Pointer(&data[0]))
 
@@ -79,12 +81,14 @@ func (p *Packet) Reset() {
 	p.inner.flags = 0
 }
 func NewPacketAlloc() (Packet, error) {
+	id := int(global_id.Add(1))
 	av_pkt := C.av_packet_alloc()
 	if av_pkt == nil {
 		return Packet{}, ErrOOM
 	}
+	trackPacketAlloc(id)
 
-	return Packet{inner: av_pkt}, nil
+	return Packet{inner: av_pkt, id: id}, nil
 }
 func NewPacketRef(avpkt unsafe.Pointer) (Packet, error) {
 	id := int(global_id.Add(1))
@@ -92,7 +96,7 @@ func NewPacketRef(avpkt unsafe.Pointer) (Packet, error) {
 	if pkt == nil {
 		return Packet{}, ErrOOM
 	}
-	// fmt.Println("new packet with id ", id)
+	trackPacketAlloc(id)
 	return Packet{inner: pkt, id: id}, nil
 }
 
@@ -109,7 +113,7 @@ func (p *Packet) Ref() (Packet, error) {
 	if pkt == nil {
 		return Packet{}, ErrOOM
 	}
-	// fmt.Println("new packet with id ", id)
+	trackPacketAlloc(id)
 	return Packet{inner: pkt, id: id}, nil
 }
 
@@ -123,7 +127,7 @@ func (p *Packet) Inner() unsafe.Pointer {
 }
 
 func (p *Packet) Free() {
-	// fmt.Println("freeing packet ", p.id)
+	trackPacketFree(p.id)
 	C.av_packet_free(&p.inner)
 }
 

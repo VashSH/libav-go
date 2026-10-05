@@ -29,6 +29,7 @@ func NewFrame() (Frame, error) {
 	if frame == nil {
 		return Frame{}, ErrOOM
 	}
+	trackFrameAlloc(uintptr(unsafe.Pointer(frame)))
 	return Frame{frame}, nil
 }
 
@@ -69,6 +70,7 @@ func NewEmptyAudioFrame(
 	if frame == nil {
 		return Frame{}, ErrOOM
 	}
+	trackFrameAlloc(uintptr(unsafe.Pointer(frame)))
 	return Frame{frame}, nil
 
 }
@@ -138,6 +140,7 @@ func (f Frame) Unref() {
 }
 
 func (f *Frame) Free() {
+	trackFrameFree(uintptr(unsafe.Pointer(f.inner)))
 	C.av_frame_free(&f.inner)
 }
 

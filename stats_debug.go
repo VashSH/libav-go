@@ -1,3 +1,5 @@
+//go:build debug
+
 package libav
 
 import (
@@ -13,10 +15,10 @@ import (
 
 // clanker generated code below do not trust!
 
-// Allocation statistics for Packet and Frame. Every allocation records the
-// call site (first frame outside this package) keyed by packet id / frame
-// pointer; Free removes it. PrintStats dumps the counters and whatever is
-// still live, grouped by call site, so leaks point at the code that made them.
+// Debug-only (-tags debug) allocation statistics for Packet and Frame. Every
+// allocation records the call site (first frame outside this package) keyed
+// by packet id / frame pointer; Free removes it. PrintStats dumps the counters
+// and whatever is still live, grouped by call site.
 
 type allocStats struct {
 	packetsCreated     atomic.Uint64
@@ -60,12 +62,17 @@ func callSite() string {
 	}
 }
 
-func trackPacketAlloc(id int) {
+var nextPacketID atomic.Int32
+
+// trackPacketAlloc hands out the packet id and records its call site.
+func trackPacketAlloc() int {
+	id := int(nextPacketID.Add(1))
 	site := callSite()
 	stats.mu.Lock()
 	stats.livePackets[id] = site
 	stats.mu.Unlock()
 	stats.packetsCreated.Add(1)
+	return id
 }
 
 func trackPacketFree(id int) {

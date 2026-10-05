@@ -15,7 +15,6 @@ static inline const char *av_err2str_wrapper(int errnum) { return av_err2str(AVE
 import "C"
 
 import (
-	"sync/atomic"
 	"unsafe"
 )
 
@@ -25,28 +24,23 @@ type Packet struct {
 	id    int
 }
 
-var global_id atomic.Int32
-
 // NewRawPacket allocates an empty AVPacket (no data buffer). Used as a reusable
 // output packet for encoders.
 func NewRawPacket() (Packet, error) {
-	id := int(global_id.Add(1))
 	av_pkt := C.av_packet_alloc()
 	if av_pkt == nil {
 		return Packet{}, ErrOOM
 	}
-	trackPacketAlloc(id)
+	id := trackPacketAlloc()
 	return Packet{av_pkt, nil, id}, nil
 }
 
 func NewPacket(data []byte, pts uint64, is_key_frame bool) (Packet, error) {
-	id := int(global_id.Add(1))
-
 	av_pkt := C.av_packet_alloc()
 	if av_pkt == nil {
 		return Packet{}, ErrOOM
 	}
-	trackPacketAlloc(id)
+	id := trackPacketAlloc()
 
 	av_pkt.data = (*C.uint8_t)(unsafe.Pointer(&data[0]))
 
@@ -81,22 +75,20 @@ func (p *Packet) Reset() {
 	p.inner.flags = 0
 }
 func NewPacketAlloc() (Packet, error) {
-	id := int(global_id.Add(1))
 	av_pkt := C.av_packet_alloc()
 	if av_pkt == nil {
 		return Packet{}, ErrOOM
 	}
-	trackPacketAlloc(id)
+	id := trackPacketAlloc()
 
 	return Packet{inner: av_pkt, id: id}, nil
 }
 func NewPacketRef(avpkt unsafe.Pointer) (Packet, error) {
-	id := int(global_id.Add(1))
 	pkt := C.av_packet_clone((*C.AVPacket)(avpkt))
 	if pkt == nil {
 		return Packet{}, ErrOOM
 	}
-	trackPacketAlloc(id)
+	id := trackPacketAlloc()
 	return Packet{inner: pkt, id: id}, nil
 }
 
@@ -108,12 +100,11 @@ func WrapAVPacket(avpkt unsafe.Pointer) Packet {
 }
 
 func (p *Packet) Ref() (Packet, error) {
-	id := int(global_id.Add(1))
 	pkt := C.av_packet_clone((*C.AVPacket)(p.Inner()))
 	if pkt == nil {
 		return Packet{}, ErrOOM
 	}
-	trackPacketAlloc(id)
+	id := trackPacketAlloc()
 	return Packet{inner: pkt, id: id}, nil
 }
 

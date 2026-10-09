@@ -81,7 +81,11 @@ func (c CodecParameters) BitRate() int {
 	return int(c.inner.bit_rate)
 }
 
-func (c *CodecParameters) SetExtadata(data []byte) {
+func (c *CodecParameters) Extradata() []byte {
+	p := c.inner
+	return unsafe.Slice((*byte)(unsafe.Pointer(p.extradata)), p.extradata_size)
+}
+func (c *CodecParameters) SetExtradata(data []byte) {
 	p := c.inner
 	if p.extradata != nil {
 		C.av_freep(unsafe.Pointer(&p.extradata))

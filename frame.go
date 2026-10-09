@@ -164,6 +164,12 @@ func (f Frame) Pts() int64 {
 func (f Frame) SetPts(pts int64) {
 	f.inner.pts = C.int64_t(pts)
 }
+func (f Frame) TimeBase() Rational {
+	return AVRational(unsafe.Pointer(&f.inner.time_base))
+}
+func (f Frame) SetTimeBase(timebase Rational) {
+	f.inner.time_base = timebase.AVRational()
+}
 
 func (f Frame) NbSamples() int64 {
 	return int64(f.inner.nb_samples)
